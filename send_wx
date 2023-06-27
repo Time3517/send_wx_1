@@ -1,0 +1,73 @@
+import re
+import time
+import json
+import requests
+from bs4 import BeautifulSoup
+
+time=time.strftime("%Y-%m-%d ", time.localtime())
+
+#------企业微信应用--------
+def send_wx(msg):
+    corpid = '' # 企业ID
+    corpsecret = ''  # Secret
+    appid = '' # 应用ID
+    url = f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={corpid}&corpsecret={corpsecret}'
+    r = requests.get(url, timeout=5)
+    tokens = r.json()['access_token']
+    url = f"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={tokens}"
+    data = {
+        "touser": "@all",
+        "msgtype": "text",
+        "agentid": appid,
+        "text": {
+            "content": msg
+        },
+        "safe": 0,
+    }
+    rtxt = requests.post(url, json=data, timeout=9).json()
+    return rtxt['errcode'] == 0 and rtxt['errmsg'] == 'ok'
+#------企业微信结束-------- 
+
+#------一条一言--------
+def one() -> str:
+    """
+    获取一条一言。
+    :return:
+    """
+    url = "https://v1.hitokoto.cn/?c=i"
+    res = requests.get(url).json()
+    return res["hitokoto"]+ "\n" + res["from_who"] + "《"+ res["from"]+ "》"
+#------一条一言结束------
+
+#------开始抓取-------- 
+def tianqi() -> str:
+    
+    params = {
+        "key": "",
+        "location": "",    # 查询地点设置为访问IP所在地
+        "language": "zh-Hans",
+        "unit": "c",
+        }
+
+    response = requests.get("https://api.seniverse.com/v3/weather/now.json", params=params)
+
+    # 解析数据
+    data = response.json()["results"]
+    address = data[0]["location"]['path']        # 地点
+    temperature = data[0]['now']["temperature"]  # 温度
+    text = data[0]['now']["text"]			     # 天气情况
+
+    # 弹窗显示消息
+    results=(  "\n今日天气\n" + \
+              "温度：" + temperature + "℃" + \
+              "\n天气情况：" + text + \
+              "\n早上好！祝您心情愉悦！(^o^)")
+    return results
+#------抓取结束-------- 
+
+#------开始推送-------- 
+if __name__ == '__main__':
+    news = tianqi() 
+    print(news)
+    send_wx(news  + "\n\n" + time )
+#------推送结束-------- 
